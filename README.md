@@ -2,8 +2,8 @@
 
 A DaVinci Resolve fuse plugin to repeat an animation based on the midi notes in a midi file. You can use this to sync animations to music. It’s useful for something like the guitar hero effect, but can be used for other things as well. 
 
-![Alt text](Images/Example1.png)
-![Alt text](Images/Example2.png)
+![meow](Images/Example2)
+![meow](Images/Example1)
 
 ## Installation 
 
