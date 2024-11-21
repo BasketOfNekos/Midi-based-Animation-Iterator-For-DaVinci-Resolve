@@ -338,9 +338,11 @@ function MidiParser(req)
         for tableValue in string.gmatch(RemoveMidi, "([%w%d%.]+)") do
             print("to remove ", tableValue)
             for i=1, #beatTimes do
-                if math.floor(beatTimes[i]) == math.floor(tableValue) + 0 then -- Rounding to make it easy to delete inputs while RemoveRounding is true.
-                    table.remove(beatTimes, i)
-                    print("Removed ", RemoveMidi)
+                if beatTimes[i] then
+                    if math.floor(beatTimes[i]) == math.floor(tableValue) + 0 then -- Rounding to make it easy to delete inputs while RemoveRounding is true.
+                        table.remove(beatTimes, i)
+                        print("Removed ", RemoveMidi)
+                    end
                 end
             end
         end
