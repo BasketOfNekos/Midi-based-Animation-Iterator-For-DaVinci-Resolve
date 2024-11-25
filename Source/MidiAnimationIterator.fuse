@@ -45,6 +45,9 @@ The other parameters recorded by the midi parser are pitch, velocity, and channe
 -- This has been made so it will stop asking the node tree upstream when it finishes caching all the frames.
 -- You may or may not have issues with fusion automatically unloading some of the frames needed for this node. This will (hopefully) resolve that.
 
+--- @UI Flip Tail:
+-- If you have overlapping content in your frames, it will let you control how they overlap before the offset (Frame of Beat) independantly.
+
 
 
 --- Register the fuse so it will appear in fusion.
@@ -272,6 +275,13 @@ function Create()
         INP_Disabled = false,
     })
 
+    InFlipTail = self:AddInput("Flip Tail", "FlipTail", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "CheckboxControl",
+        INP_DoNotifyChanged = true,
+        INP_Default = 0,
+    })
+
     self:EndControlNest()
 
     -- Image I/O
@@ -368,24 +378,41 @@ function MakeFrameTable(req, beatTimes)
     local TrackStart = InTrackStart:GetValue(req).Value
     local AnimationEnd = InFrameEnd:GetValue(req).Value
     local FrameBeat = InFrameBeat:GetValue(req).Value
+    local FlipTail = InFlipTail:GetValue(req).Value
 
     -- Function parameters
     local TimeTable = {}
     local startIndex
 
-    for index1 = TrackStart, TrackLength do
+    -- end on the frame that corrosponds with the offset?
+    for frame = TrackStart, TrackLength do
         local MidiFrames = {}
-        local max = index1 + FrameBeat
-        local min = index1 - AnimationEnd + FrameBeat -- Find the range of plausible values for the animation soecified by the user
+        local max = frame + FrameBeat
+        local min = frame - AnimationEnd + FrameBeat -- Find the range of plausible animation frames for the frame to check if its on screen.
         local minIndex
 
-        startIndex = startIndex or 1
-        for index2 = startIndex, #beatTimes do
-            if beatTimes[index2] > max then break end
+        local tailCount = 1
 
-            if min < beatTimes[index2] then -- and check if would be on screen. If it is on screen, add it to the new table.
-                table.insert(MidiFrames, index1 - beatTimes[index2] + FrameBeat)
-                minIndex = minIndex or index2
+        startIndex = startIndex or 1
+        for animFrame = startIndex, #beatTimes do
+            if beatTimes[animFrame] > max then break end
+
+            if min < beatTimes[animFrame] then
+                frameToAdd = frame - beatTimes[animFrame] + FrameBeat + 1 -- Plus 1 so it includes the last frame
+
+                -- Adds frames in order so offset(FrameBeat) will play correctly.
+                if frameToAdd >= FrameBeat then
+                    table.insert(MidiFrames, frameToAdd)
+                else
+                    table.insert(MidiFrames, tailCount, frameToAdd)
+                    if FlipTail == 1 then
+                        tailCount = 1
+                    else
+                        tailCount = tailCount + 1
+                    end
+                end
+
+                minIndex = minIndex or animFrame
             end
         end
         table.insert(TimeTable, MidiFrames)
