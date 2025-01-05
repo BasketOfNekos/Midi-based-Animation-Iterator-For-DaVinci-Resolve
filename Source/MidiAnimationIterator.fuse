@@ -407,11 +407,12 @@ function MakeFrameTable(req, beatTimes)
     -- Function parameters
     local TimeTable = {}
     local startIndex
+    local AnimationLength = AnimationEnd - AnimationBegin
 
     for frame = TrackStart, TrackLength do
         local MidiFrames = {}
         local max = frame + AnimationOffset
-        local min = frame - (AnimationEnd - AnimationBegin) + AnimationOffset -- Find the range of plausible animation frames for the frame to check if its on screen.
+        local min = frame - AnimationLength + AnimationOffset -- Find the range of plausible animation frames for the frame to check if its on screen.
         local minIndex
 
         local tailCount = 1
@@ -446,9 +447,15 @@ function MakeFrameTable(req, beatTimes)
     end
 
     if UseLoops == 1 then
-        for animFrame = 1, #TimeTable do
+        for animFrame = 1, 400 do
             for dups = 1, #TimeTable[animFrame] do
-                TimeTable[animFrame][dups] = math.floor(animFrame / (AnimationEnd - AnimationBegin)) * (AnimationEnd - AnimationBegin) + TimeTable[animFrame][dups] + TrackStart
+                local LoopNum = math.floor(animFrame / AnimationLength)
+                local LoopFrame = LoopNum * AnimationLength
+                local Remainder = animFrame - LoopFrame
+                if TimeTable[animFrame][dups] < Remainder then
+                    LoopFrame =  LoopFrame - AnimationLength
+                end
+                TimeTable[animFrame][dups] = LoopFrame + TimeTable[animFrame][dups] + TrackStart
             end
         end
     end
