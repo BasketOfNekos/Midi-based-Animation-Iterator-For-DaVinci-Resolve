@@ -48,6 +48,9 @@ The other parameters recorded by the midi parser are pitch, velocity, and channe
 --- @UI Flip Tail:
 -- If you have overlapping content in your frames, it will let you control how they overlap before the offset (Frame of Beat) independantly.
 
+--- @UI Use Loops
+-- If you want to make a value change outside of the specified animation, you can set the animation to loop in the spline editor and then check this to open up those controls for use. This locks "Manually Cache Frames" because one will effectively negate the other.
+
 
 
 --- Register the fuse so it will appear in fusion.
@@ -282,6 +285,13 @@ function Create()
         INP_Default = 0,
     })
 
+    InUseLoops = self:AddInput("Use Loops", "UseLoops", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "CheckboxControl",
+        INP_DoNotifyChanged = true,
+        INP_Default = 0,
+    })
+
     self:EndControlNest()
 
     -- Image I/O
@@ -379,6 +389,7 @@ function MakeFrameTable(req, beatTimes)
     local AnimationEnd = InFrameEnd:GetValue(req).Value
     local FrameBeat = InFrameBeat:GetValue(req).Value
     local FlipTail = InFlipTail:GetValue(req).Value
+    local UseLoops = InUseLoops:GetValue(req).Value
 
     -- Function parameters
     local TimeTable = {}
@@ -421,6 +432,15 @@ function MakeFrameTable(req, beatTimes)
             startIndex = minIndex
         end
     end
+
+    if UseLoops == 1 then
+        for animFrame = 1, #TimeTable do
+            for dups = 1, #TimeTable[animFrame] do
+                TimeTable[animFrame][dups] = math.floor(animFrame / AnimationEnd) * AnimationEnd + TimeTable[animFrame][dups] + TrackStart
+            end
+        end
+    end
+
     print("Refreshed Table")
     return TimeTable
 end
@@ -544,7 +564,7 @@ function NotifyChanged(inp, param, time)
     end
 
     -- Disables manual frame caching when using floating point frames. Esures high quality and reduces wasted memory.
-    if inp == InRemoveRounding then
+    if inp == InRemoveRounding or InUseLoops then
         if param.Value == 1 then
             InFrameCashe:SetSource(Number(0), 0)
             InFrameCashe:SetAttrs({INP_Disabled = true})
