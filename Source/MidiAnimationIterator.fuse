@@ -447,12 +447,12 @@ function MakeFrameTable(req, beatTimes)
     end
 
     if UseLoops == 1 then
-        for animFrame = 1, 400 do
+        for animFrame = 1, #TimeTable do
             for dups = 1, #TimeTable[animFrame] do
                 local LoopNum = math.floor(animFrame / AnimationLength)
                 local LoopFrame = LoopNum * AnimationLength
                 local Remainder = animFrame - LoopFrame
-                if TimeTable[animFrame][dups] < Remainder then
+                if TimeTable[animFrame][dups] > Remainder then
                     LoopFrame =  LoopFrame - AnimationLength
                 end
                 TimeTable[animFrame][dups] = LoopFrame + TimeTable[animFrame][dups] + TrackStart
