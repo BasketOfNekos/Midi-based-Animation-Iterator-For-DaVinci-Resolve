@@ -36,7 +36,7 @@ You'll be able to find it in your fusion menu under the Fuses tab. (right click 
 
 ### Midi prep
 
-I recommend that you have some midi editing tool, any DAW should work. Be aware that it's common for DAW's (like Ableton) to not export midi with the bpm information, in this case I would recommend uploading your midi file to beepbox (a free online tool), and re-exporting it with a corrected BPM. <br />
+I recommend that you have some midi editing tool, any DAW should work. Be aware that it's common for DAW's (like Ableton) to export midi without the bpm information, in this case I would recommend uploading your midi file to beepbox (a free online tool), and re-exporting it with a corrected BPM. <br />
 Also, be aware, if you have a BPM shift in your song, it will become really difficult to sync up the midi and audio. In this case, you should take the exported audio into a new project in your DAW and align the midi there. 
 
 ### Animation setup
