@@ -10,21 +10,21 @@ A DaVinci Resolve fuse plugin to repeat an animation based on the midi notes in 
 All you need to do is relocate the files into the appropriate folders. 
 
 #### midiEdited.lua needs to be in your modules folder.
-##### Resolve
+##### DaVinci Resolve
 macOS:    ~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Support/Fusion/Modules/Lua <br />
 Windows:  C:\ProgramData\Blackmagic Design\DaVinci Resolve\Fusion\Modules\Lua <br />
 Linux:    ~/.local/share/DaVinciResolve/Fusion/Modules/Lua/ <br />
-##### Fusion
+##### Fusion (Standalone)
 macOS:    ~/Library/Application Support/Blackmagic Design/Fusion/Modules/Lua <br />
 Windows:  C:\ProgramData\Blackmagic Design\Fusion\Modules\Lua <br />
 Linux:    ~/.fusion/BlackmagicDesign/Fusion/Modules/Lua <br />
 
 #### RecursiveMidiRepeat.fuse needs to be in your fuses folder.
-##### Resolve
+##### DaVinci Resolve
 macOS:    ~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Support/Fusion/Fuses <br />
 Windows:  C:\ProgramData\Blackmagic Design\DaVinci Resolve\Fusion\Fuses <br />
 Linux:    ~/.local/share/DaVinciResolve/Fusion/Fuses <br />
-##### Fusion
+##### Fusion (Standalone)
 macOS:    ~/Library/Application Support/Blackmagic Design/Fusion/Fuses <br />
 Windows:  C:\ProgramData\Blackmagic Design\Fusion\Fuses <br />
 Linux:    ~/.fusion/BlackmagicDesign/Fusion/Fuses <br />
