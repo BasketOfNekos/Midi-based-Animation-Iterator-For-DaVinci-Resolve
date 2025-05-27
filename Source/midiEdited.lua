@@ -381,7 +381,7 @@ local function readTrack(stream, chunkLength, track, tempo)
 
     if status >= 0x80 and status < 0xF0 then
       local newlen, noteon, channel, note, velocity = midiEvent[bit_band(status, 0xF0)](stream, bit_band(status, 0x0F) + 1, firstByte) -- note is the "key" being pressed
-      if noteon == true then
+      if noteon == true and velocity > 0 then
         table.insert(trackNotes, {note = note, tick = tick, tempo = tempo, channel = channel, velocity = velocity})
       end
       length = length + newlen
