@@ -430,27 +430,34 @@ function midi.process(stream, frame_rate, onlyHeader, onlyTrack)
   local allTracks = {}
   local format, tracks, devision -- Header information
   local track = 0
-  local tempoChanges = {{tempo = 500000, tick = 0}} -- Default tempo (120 BPM)
+  local tempoChanges = {}
 
   -- Convert ticks to frames
   local function ticks_to_frames(tick, division)
     local total_frames = 0
     local ticks_per_frame
     local TPQN = division -- TPQN means ticks per quarter note
+    local threshold = 50 -- If the tick step is less than 50 it will use linear tempo transitions instead of instant tempo transitions
 
-    local previous_tempo = 500000
+    local previous_tempo = tempoChanges[1].tempo
+
     local previous_tick = 0
     for i, tempoNote in ipairs(tempoChanges) do
-      if tempoNote.tick < tick then
-        total_frames = total_frames + (tempoNote.tick - previous_tick)*((tempoNote.tempo / TPQN)*(1/1e6))*frame_rate
+      if tempoNote.tick <= tick then
+
+        if tempoNote.tick - previous_tick <= threshold then
+          total_frames = total_frames + (tempoNote.tick - previous_tick) * ((((tempoNote.tempo + previous_tempo) / 2) / TPQN) * (1 / 1e6)) * frame_rate
+        else
+          total_frames = total_frames + (tempoNote.tick - previous_tick) * ((previous_tempo / TPQN) * (1 / 1e6)) * frame_rate
+        end
 
         previous_tempo = tempoNote.tempo
         previous_tick = tempoNote.tick
       else
-        total_frames = total_frames + (tick - previous_tick)*((tempoNote.tempo / TPQN)*(1/1e6))*frame_rate
         break
       end
     end
+    total_frames = total_frames + (tick - previous_tick) * ((previous_tempo / TPQN) * (1 / 1e6)) * frame_rate -- slightly off, not linear
 
     return total_frames
   end
@@ -482,6 +489,10 @@ function midi.process(stream, frame_rate, onlyHeader, onlyTrack)
         dump(trackNotes)
 
         if #trackNotes > 0 and devision ~= nil then
+          if #tempoChanges == 0 then
+            tempoChanges = {tempo = 500000, tick = 0} -- Default tempo (120 BPM)
+          end
+
           -- Convert tick values to frames
           for j, event in ipairs(trackNotes) do
             event.frame = ticks_to_frames(event.tick, devision)
