@@ -356,7 +356,7 @@ end
 ---@param stream file* A stream, pointing to the data part of a track chunk.
 ---@param chunkLength number The length of the chunk in bytes.
 ---@param track integer The one-based index of the track, used in the "track" callback.
-local function readTrack(stream, chunkLength, track, tempo)
+local function readTrack(stream, chunkLength, track, tempoChanges)
   print("track", track)
   local trackNotes = {}
   local tick = 0
@@ -381,8 +381,9 @@ local function readTrack(stream, chunkLength, track, tempo)
 
     if status >= 0x80 and status < 0xF0 then
       local newlen, noteon, channel, note, velocity = midiEvent[bit_band(status, 0xF0)](stream, bit_band(status, 0x0F) + 1, firstByte) -- note is the "key" being pressed
+--       print("newlen ", newlen, " noteon ", noteon, " channel ", channel, " note ", note, " velocity ", velocity)
       if noteon == true and velocity > 0 then
-        table.insert(trackNotes, {note = note, tick = tick, tempo = tempo, channel = channel, velocity = velocity})
+        table.insert(trackNotes, {note = note, tick = tick, channel = channel, velocity = velocity})
       end
       length = length + newlen
     elseif status == 0xF0 then
@@ -396,7 +397,8 @@ local function readTrack(stream, chunkLength, track, tempo)
       length = length + metaOffset
 
       if eventType == "setTempo" then
-        tempo = eventInfo
+        print("setTempo", eventInfo, "tick", tick)
+        table.insert(tempoChanges, {tempo = eventInfo, tick = tick})
       end
 
     else
@@ -409,7 +411,7 @@ local function readTrack(stream, chunkLength, track, tempo)
     chunkLength = chunkLength - readChunkLength - vlqLength
   end
 
-  return trackNotes, tempo
+  return trackNotes, tempoChanges
 end
 
 ---Processes a midi file.
@@ -428,24 +430,29 @@ function midi.process(stream, frame_rate, onlyHeader, onlyTrack)
   local allTracks = {}
   local format, tracks, devision -- Header information
   local track = 0
-  local tempo = 500000  -- Default tempo (120 BPM)
+  local tempoChanges = {{tempo = 500000, tick = 0}} -- Default tempo (120 BPM)
 
   -- Convert ticks to frames
-  local function ticks_to_frames(tick, tempo, division)
+  local function ticks_to_frames(tick, division)
+    local total_frames = 0
     local ticks_per_frame
-    if division > 0 then
-      -- Calculate ticks per frame using frame rate, TPQN, and BPM
-      local TPQN = division
-      local BPM = 6e7 / tempo  -- Convert tempo to BPM
-      local ticks_per_second = (BPM * TPQN) / 60 --60 seconds in a min
-      --print("ticks_per_second ", ticks_per_second)
-      ticks_per_frame = ticks_per_second / frame_rate
-      --print("ticks_per_frame ", ticks_per_frame)
-    else
-      -- Ticks per frame is directly stored in division
-      ticks_per_frame = -division
+    local TPQN = division -- TPQN means ticks per quarter note
+
+    local previous_tempo = 500000
+    local previous_tick = 0
+    for i, tempoNote in ipairs(tempoChanges) do
+      if tempoNote.tick < tick then
+        total_frames = total_frames + (tempoNote.tick - previous_tick)*((tempoNote.tempo / TPQN)*(1/1e6))*frame_rate
+
+        previous_tempo = tempoNote.tempo
+        previous_tick = tempoNote.tick
+      else
+        total_frames = total_frames + (tick - previous_tick)*((tempoNote.tempo / TPQN)*(1/1e6))*frame_rate
+        break
+      end
     end
-    return tick / ticks_per_frame
+
+    return total_frames
   end
 
   while true do
@@ -471,13 +478,13 @@ function midi.process(stream, frame_rate, onlyHeader, onlyTrack)
       if not onlyTrack or track == onlyTrack then
 
 
-        local trackNotes, tempoSetter = readTrack(stream, chunkLength, track, tempo) -- Read track
-        tempo = tempoSetter
+        local trackNotes, tempoChanges = readTrack(stream, chunkLength, track, tempoChanges) -- Read track
+        dump(trackNotes)
 
-        if #trackNotes > 0 and devision ~= nil and tempo ~= nil then
+        if #trackNotes > 0 and devision ~= nil then
           -- Convert tick values to frames
           for j, event in ipairs(trackNotes) do
-            event.frame = ticks_to_frames(event.tick, tempo, devision)
+            event.frame = ticks_to_frames(event.tick, devision)
           end
         end
 
