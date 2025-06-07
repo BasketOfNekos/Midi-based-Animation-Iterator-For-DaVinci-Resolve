@@ -362,6 +362,10 @@ function MidiParser(req)
                     break
                 end
             end
+            if beatTimes[#beatTimes] <= tableValueNum then
+                table.insert(beatTimes, #beatTimes + 1, tableValueNum)
+                break
+            end
         end
     end
 
