@@ -36,12 +36,20 @@ You'll be able to find it in the fusion menu under the Fuses tab. Look for "Midi
 
 ### Midi prep
 
-I recommend that you have some midi editing tool, any DAW should work. Be aware that it's common for DAW's (like Ableton) to export midi without the bpm information, in this case I would recommend uploading your midi file to beepbox.co (a free online tool), and re-exporting it with a corrected BPM. <br />
-Also, be aware, the midi interpreter does not handle BPM changes (yet). For now, you should export a midi clip for every BPM change. 
+I recommend that you have some midi editing tool, any DAW should work. Be aware that it's common for DAW's (like Ableton and bitwig) to export midi without the bpm information, in this case I would recommend uploading your midi file to beepbox.co (a free online tool), and re-exporting it with a corrected BPM. You may want to use another DAW if you have tempo changes in your midi file. 
+
+#### Reccomended DAWs (List will expand as I learn more) <br />
+##### Exports Midi with tempo changes: <br />
+Cakewalk <br />
+Reaper <br />
+##### Exports Midi with tempo: <br />
+Beepbox
 
 ### Animation setup
 
 Connect the output of the node that makes up your animation into the midi_repeat node, once you have done that, you will now need to specify some values. These values are the beginning and end frames of your animation, an offset which controls where you want the midi note to play at, and the path to the midi file.
+
+It is reccomended to make your input animation start on the same frame as the first note or it will not show up. 
 
 ### Timeline settings
 
