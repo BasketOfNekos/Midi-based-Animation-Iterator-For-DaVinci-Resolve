@@ -459,7 +459,7 @@ function midi.process(stream, frame_rate, onlyHeader, onlyTrack)
     end
     total_frames = total_frames + (tick - previous_tick) * ((previous_tempo / TPQN) * (1 / 1e6)) * frame_rate -- slightly off, not linear
 
-    return total_frames
+    return total_frames / 2
   end
 
   while true do
@@ -486,7 +486,6 @@ function midi.process(stream, frame_rate, onlyHeader, onlyTrack)
 
 
         local trackNotes, tempoChanges = readTrack(stream, chunkLength, track, tempoChanges) -- Read track
-        dump(trackNotes)
 
         if #trackNotes > 0 and devision ~= nil then
           if #tempoChanges == 0 then
