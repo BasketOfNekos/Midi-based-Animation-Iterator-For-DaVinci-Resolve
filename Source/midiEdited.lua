@@ -459,7 +459,7 @@ function midi.process(stream, frame_rate, onlyHeader, onlyTrack)
     end
     total_frames = total_frames + (tick - previous_tick) * ((previous_tempo / TPQN) * (1 / 1e6)) * frame_rate -- slightly off, not linear
 
-    return total_frames / 2
+    return total_frames
   end
 
   while true do
