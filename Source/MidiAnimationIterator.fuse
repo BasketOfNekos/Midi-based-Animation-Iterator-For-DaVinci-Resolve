@@ -214,16 +214,13 @@ function Create()
         -- local itemFlags = item:GetFlagList()
 
         print("ProjectFrameRate ", projectFrameRate, "projectLength", projectLength, "itemLength", itemlength)
-        tool.FrameRate = projectFrameRate
+        -- tool.FrameRate = projectFrameRate
         tool.TrackLength = itemlength
         tool.TrackStart = itemStart - 3600 * projectFrameRate -- Because DaVinci starts an hour in
         ]],
     })
-    -- item:GetMarkers() Returns a dict (frameId -> {information}) of all markers and dicts with their information. Example of output format: {96.0: {'color': 'Green', 'duration': 1.0, 'note': '', 'name': 'Marker 1'}, ...}. In the above example - there is one ‘Green’ marker at offset 96 position of the marker)
-    -- Possible TODO try using this to automatically get the animation start and end
-    -- This would require moving the autofill button to the top, and the usefullness of this is debatable. Best for integration with other scripts/plugins that add markers, but I'm not aware of any yet so this hasnt been implemented.
 
-    InFrameRate = self:AddInput("Project Framerate", "Framerate", {
+    InFrameRate = self:AddInput("Project Frame Rate", "FrameRate", {
         LINKID_DataType = "Number",
         INPID_InputControl = "ScrewControl",
         INP_DoNotifyChanged = true,
@@ -253,6 +250,157 @@ function Create()
     self:EndControlNest()
 
     self:BeginControlNest("Add and Remove Times", "AddRemove", false);
+
+    InMarkerColorFilter = self:AddInput("Marker Color Filter", "MarkerColorFilter", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ComboControl",
+        INP_Default = 0.0,
+        INP_Integer = true,
+        CC_LabelPosition = "Horizontal",
+        { CCS_AddString = "None", },
+        { CCS_AddSeparator = "", },
+        { CCS_AddString = "Blue", },
+        { CCS_AddString = "Cyan", },
+        { CCS_AddString = "Green", },
+        { CCS_AddString = "Yellow", },
+        { CCS_AddString = "Red", },
+        { CCS_AddString = "Pink", },
+        { CCS_AddString = "Purple", },
+        { CCS_AddString = "Fuchsia", },
+        { CCS_AddString = "Rose", },
+        { CCS_AddString = "Lavender", },
+        { CCS_AddString = "Sky", },
+        { CCS_AddString = "Mint", },
+        { CCS_AddString = "Lemon", },
+        { CCS_AddString = "Sand", },
+        { CCS_AddString = "Cocoa", },
+        { CCS_AddString = "Cream", },
+    })
+
+    InMarkerFill = self:AddInput("Markers to AddMidi", "MidiFillButton", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ButtonControl",
+        INP_DoNotifyChanged = false,
+        BTNCS_Execute = [[
+            local projectManager = resolve:GetProjectManager()
+            local project = projectManager:GetCurrentProject()
+            local timeline = project:GetCurrentTimeline()
+            local item = timeline:GetCurrentVideoItem()
+
+            -- Get a list of every DaVinci Resolve "item"
+            local AudioItemList = {}
+            for i=1, timeline:GetTrackCount("audio") + 0 do
+                table.insert(AudioItemList, timeline:GetItemListInTrack("audio", i))
+            end
+
+            local VideoItemList = {}
+            for i=1, timeline:GetTrackCount("video") + 0 do
+                table.insert(VideoItemList, timeline:GetItemListInTrack("video", i))
+            end
+
+            -- print("----------------------------------", "TimeLineMaekers")
+
+            -- Get all the markers on the timeline
+            local TimeLineMarkers = {}
+            table.insert(TimeLineMarkers, timeline:GetMarkers())
+
+            -- print("----------------------------------", " AudioMarkers")
+
+            -- Get all the markers on every audio item
+            local AudioMarkers = {}
+            for i=1, #AudioItemList do
+                for j=1, #AudioItemList[i] do
+                    local AudioItem = AudioItemList[i][j]:GetMarkers()
+                    local length = 0
+
+                    for l, _ in pairs(AudioItem) do
+                        length = length + 1
+                    end
+
+                    if length > 0 then
+                        table.insert(AudioMarkers, AudioItem)
+                    end
+                end
+            end
+
+            -- print("----------------------------------", " VideoMarkers")
+
+            -- Get all the markers on every video item
+            local VideoMarkers = {}
+            for i=1, #VideoItemList do
+                for j=1, #VideoItemList[i] do
+                    local VideoItem = VideoItemList[i][j]:GetMarkers()
+                    local length = 0
+
+                    for l, _ in pairs(VideoItem) do
+                        length = length + 1
+                    end
+
+                    if length > 0 then
+                        table.insert(VideoMarkers, VideoItem)
+                    end
+                end
+            end
+
+            -- print("----------------------------------")
+
+            local Colors = {
+                "None",
+                "Blue",
+                "Cyan",
+                "Green",
+                "Yellow",
+                "Red",
+                "Pink",
+                "Purple",
+                "Fuchsia",
+                "Rose",
+                "Lavender",
+                "Sky",
+                "Mint",
+                "Lemon",
+                "Sand",
+                "Cocoa",
+                "Cream",
+            }
+
+            local ColorFilter = tool.MarkerColorFilter[TIME_UNDEFINED]
+            local ColorFilteredMarkers = {}
+            local hash = {} -- For removing duplicates
+            local AllMarkers = {}
+            table.insert(AllMarkers, TimeLineMarkers)
+            table.insert(AllMarkers, AudioMarkers)
+            table.insert(AllMarkers, VideoMarkers)
+
+            for markerType=1, #AllMarkers do
+                for item=1, #AllMarkers[markerType] do
+                    for frame, marker in pairs(AllMarkers[markerType][item]) do
+                        if Colors[ColorFilter + 1] == "None" and (not hash[marker]) then
+                            table.insert(ColorFilteredMarkers, frame)
+                            hash[marker] = true
+                        elseif Colors[ColorFilter + 1] == marker.color and (not hash[marker]) then
+                            table.insert(ColorFilteredMarkers, frame)
+                            hash[marker] = true
+                        end
+                    end
+                end
+            end
+
+            local output = {tool.AddMidi[TIME_UNDEFINED]}
+            table.insert(output, "{")
+            for _, frame in ipairs(ColorFilteredMarkers) do
+                table.insert(output, frame)
+                table.insert(output, ",")
+            end
+            if #output > 0 then
+                table.remove(output, #output)
+            end
+            table.insert(output, "}")
+
+            local outputString = table.concat(output)
+            tool.AddMidi = outputString
+        ]],
+    })
 
     InAddMidi = self:AddInput("Add Midi", "AddMidi", {
         LINKID_DataType = "Text",
@@ -326,6 +474,7 @@ end
 function MidiParser(req)
     -- UI parameters
     local projectFrameRate = InFrameRate:GetValue(req).Value
+    local TrackStart = InTrackStart:GetValue(req).Value
     local RemoveRounding = InRemoveRounding:GetValue(req).Value
     local AddMidi = InAddMidi:GetValue(req).Value
     local RemoveMidi = InRemoveMidi:GetValue(req).Value
@@ -355,16 +504,17 @@ function MidiParser(req)
     -- Converts the midi times in the add input and adds them to the beatTimes table
     if AddMidi ~= "" and AddMidi ~= "Example, \n {0,1,2} \n adds a beat at frames 0, 1, and 2" then
         for tableValue in string.gmatch(AddMidi, "([%w%d%.]+)") do
-            local tableValueNum = tableValue + 0 -- +0 to turn it into a number instead of a string
+            local tableValueNum = tableValue + 0 - TrackStart -- +0 to turn it into a number instead of a string
             for i=1, #beatTimes do
                 if beatTimes[i] >= tableValueNum then
                     table.insert(beatTimes, i, tableValueNum)
+                    print("Added ", tableValueNum)
                     break
                 end
             end
             if beatTimes[#beatTimes] <= tableValueNum then
                 table.insert(beatTimes, #beatTimes + 1, tableValueNum)
-                break
+                print("Added at end", tableValueNum) -- GIT NOTE Removes the break
             end
         end
     end
@@ -372,10 +522,9 @@ function MidiParser(req)
     -- Removes the midi times in the remove input
     if RemoveMidi ~= "" and RemoveMidi ~= "Example, \n {0,1,2} \n removes a beat at frames 0, 1, and 2" then
         for tableValue in string.gmatch(RemoveMidi, "([%w%d%.]+)") do
-            print("to remove ", tableValue)
             for i=1, #beatTimes do
                 if beatTimes[i] then
-                    if math.floor(beatTimes[i]) == math.floor(tableValue) + 0 then -- Rounding to make it easy to delete inputs while RemoveRounding is true.
+                    if math.floor(beatTimes[i]) == math.floor(tableValue) + 0 - TrackStart then -- Rounding to make it easy to delete inputs while RemoveRounding is true.
                         table.remove(beatTimes, i)
                         print("Removed ", RemoveMidi)
                     end
@@ -452,14 +601,18 @@ function MakeFrameTable(req, beatTimes)
 
     if UseLoops == 1 then
         for animFrame = 1, #TimeTable do
-            for dups = 1, #TimeTable[animFrame] do
+            for dupes = 1, #TimeTable[animFrame] do
                 local LoopNum = math.floor(animFrame / AnimationLength)
                 local LoopFrame = LoopNum * AnimationLength
                 local Remainder = animFrame - LoopFrame
-                if TimeTable[animFrame][dups] > Remainder then
+                if TimeTable[animFrame][dupes] > Remainder then
                     LoopFrame =  LoopFrame - AnimationLength
+
+                    while LoopFrame >= TrackLength do
+                        LoopFrame = LoopFrame - AnimationLength
+                    end
                 end
-                TimeTable[animFrame][dups] = LoopFrame + TimeTable[animFrame][dups] + TrackStart
+                TimeTable[animFrame][dupes] = LoopFrame + TimeTable[animFrame][dupes] + TrackStart
             end
         end
     end
@@ -528,7 +681,7 @@ function Process(req)
     out:Clear()
 
     -- Merge frames specified in the FrameTable together.
-    -- +1 because davinci starts at frame 0 but the table starts at frame 1.
+    -- +1 because davinci starts at frame 0 but lua tables start at index 1.
     for i = 1, #TimeTable[req.Time + 1] do
         local requestedKeyFrame = TimeTable[req.Time + 1][i]
         local tmpimg
