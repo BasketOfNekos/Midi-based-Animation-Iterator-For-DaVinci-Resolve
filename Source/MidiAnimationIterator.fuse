@@ -216,7 +216,7 @@ function Create()
         print("ProjectFrameRate ", projectFrameRate, "projectLength", projectLength, "itemLength", itemlength)
         -- tool.FrameRate = projectFrameRate
         tool.TrackLength = itemlength
-        tool.TrackStart = itemStart - 3600 * projectFrameRate -- Because DaVinci starts an hour in
+        -- tool.TrackStart = itemStart - 3600 * projectFrameRate -- Because DaVinci starts an hour in
         ]],
     })
 
@@ -478,24 +478,28 @@ function MidiParser(req)
     local RemoveRounding = InRemoveRounding:GetValue(req).Value
     local AddMidi = InAddMidi:GetValue(req).Value
     local RemoveMidi = InRemoveMidi:GetValue(req).Value
-    local file = assert(io.open(InMidi:GetValue(req).Value, "rb"))
+    local file = InMidi:GetValue(req).Value
 
-    -- Function parameters
-    print("parse midi")
-    local midi = require("midiEdited")
+    -- Read Midi from file
     local beatTimes = {}
+    if string.len(file) > 0 then
+        file = assert(io.open(InMidi:GetValue(req).Value, "rb"))
+        -- Function parameters
+        print("parse midi")
+        local midi = require("midiEdited")
 
-    -- Open file and send it to the midi parser
-    if file ~= nil then
-        local tracks = midi.process(file, projectFrameRate)
-        file:close()
+        -- Open file and send it to the midi parser
+        if file ~= nil then
+            local tracks = midi.process(file, projectFrameRate)
+            file:close()
 
-        for i, track in ipairs(tracks) do
-            for j, event in ipairs(track) do
-                if RemoveRounding == 1 then
-                    beatTimes[#beatTimes+1] = event.frame
-                else
-                    beatTimes[#beatTimes+1] = math.floor(event.frame)
+            for i, track in ipairs(tracks) do
+                for j, event in ipairs(track) do
+                    if RemoveRounding == 1 then
+                        beatTimes[#beatTimes+1] = event.frame
+                    else
+                        beatTimes[#beatTimes+1] = math.floor(event.frame)
+                    end
                 end
             end
         end
@@ -508,13 +512,11 @@ function MidiParser(req)
             for i=1, #beatTimes do
                 if beatTimes[i] >= tableValueNum then
                     table.insert(beatTimes, i, tableValueNum)
-                    print("Added ", tableValueNum)
                     break
                 end
             end
-            if beatTimes[#beatTimes] <= tableValueNum then
+            if #beatTimes == 0 or beatTimes[#beatTimes] <= tableValueNum then
                 table.insert(beatTimes, #beatTimes + 1, tableValueNum)
-                print("Added at end", tableValueNum) -- GIT NOTE Removes the break
             end
         end
     end
@@ -526,12 +528,22 @@ function MidiParser(req)
                 if beatTimes[i] then
                     if math.floor(beatTimes[i]) == math.floor(tableValue) + 0 - TrackStart then -- Rounding to make it easy to delete inputs while RemoveRounding is true.
                         table.remove(beatTimes, i)
-                        print("Removed ", RemoveMidi)
                     end
                 end
             end
         end
     end
+
+    -- De-duplicate times
+    local hash = {} -- For removing duplicates
+    local dedupBeatTimes = {}
+    for _, item in pairs(beatTimes) do
+        if (not hash[item]) then
+            table.insert(dedupBeatTimes, item)
+            hash[item] = true
+        end
+    end
+    beatTimes = dedupBeatTimes
 
     -- Print table values so it's easier to use the "add and remove inputs" control
     print("-----------------------")
