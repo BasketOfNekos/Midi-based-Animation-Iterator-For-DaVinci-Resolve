@@ -220,7 +220,7 @@ function Create()
         ]],
     })
 
-    InFrameRate = self:AddInput("Project Frame Rate", "FrameRate", {
+    InFrameRate = self:AddInput("[Warning] Project Frame Rate", "FrameRate", {
         LINKID_DataType = "Number",
         INPID_InputControl = "ScrewControl",
         INP_DoNotifyChanged = true,
@@ -238,7 +238,7 @@ function Create()
         INP_Default = 1,
     })
 
-    InTrackStart = self:AddInput("Track Start (Frames)", "TrackStart", {
+    InTrackStart = self:AddInput("[Warning] Track Start (Frames)", "TrackStart", {
         LINKID_DataType = "Number",
         INPID_InputControl = "ScrewControl",
         INP_DoNotifyChanged = true,
