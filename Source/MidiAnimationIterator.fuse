@@ -251,6 +251,19 @@ function Create()
 
     self:BeginControlNest("Add and Remove Times", "AddRemove", false);
 
+    InTrackColorFilter = self:AddInput("Marker Track Filter", "TrackColorFilter", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ComboControl",
+        INP_Default = 0.0,
+        INP_Integer = true,
+        CC_LabelPosition = "Horizontal",
+        { CCS_AddString = "None", },
+        { CCS_AddSeparator = "", },
+        { CCS_AddString = "Audio", },
+        { CCS_AddString = "Video", },
+        { CCS_AddString = "TimeLine", },
+    })
+
     InMarkerColorFilter = self:AddInput("Marker Color Filter", "MarkerColorFilter", {
         LINKID_DataType = "Number",
         INPID_InputControl = "ComboControl",
@@ -364,21 +377,41 @@ function Create()
                 "Cream",
             }
 
-            local ColorFilter = tool.MarkerColorFilter[TIME_UNDEFINED]
+            local Tracks = {
+                "None",
+                "Audio",
+                "Video",
+                "Timeline",
+            }
+
+            local TrackFilter = tool.TrackColorFilter[TIME_UNDEFINED] + 1
+            local ColorFilter = tool.MarkerColorFilter[TIME_UNDEFINED] + 1
             local ColorFilteredMarkers = {}
             local hash = {} -- For removing duplicates
             local AllMarkers = {}
-            table.insert(AllMarkers, TimeLineMarkers)
-            table.insert(AllMarkers, AudioMarkers)
-            table.insert(AllMarkers, VideoMarkers)
+
+            if Tracks[TrackFilter] == "None" then
+                table.insert(AllMarkers, TimeLineMarkers)
+                table.insert(AllMarkers, AudioMarkers)
+                table.insert(AllMarkers, VideoMarkers)
+            end
+            if Tracks[TrackFilter] == "Audio" then
+                table.insert(AllMarkers, AudioMarkers)
+            end
+            if Tracks[TrackFilter] == "Video" then
+                table.insert(AllMarkers, VideoMarkers)
+            end
+            if Tracks[TrackFilter] == "Timeline" then
+                table.insert(AllMarkers, TimeLineMarkers)
+            end
 
             for markerType=1, #AllMarkers do
                 for item=1, #AllMarkers[markerType] do
                     for frame, marker in pairs(AllMarkers[markerType][item]) do
-                        if Colors[ColorFilter + 1] == "None" and (not hash[marker]) then
+                        if Colors[ColorFilter] == "None" and (not hash[marker]) then
                             table.insert(ColorFilteredMarkers, frame)
                             hash[marker] = true
-                        elseif Colors[ColorFilter + 1] == marker.color and (not hash[marker]) then
+                        elseif Colors[ColorFilter] == marker.color and (not hash[marker]) then
                             table.insert(ColorFilteredMarkers, frame)
                             hash[marker] = true
                         end
