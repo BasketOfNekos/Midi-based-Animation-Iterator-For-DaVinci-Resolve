@@ -1,60 +1,6 @@
 --[[--
-Overview:
-Takes an animation from the node tree in a fusion comp (assumes the beginning frame starts at 0) and a midi file, then repeats the animation throughout the rest of the fusion comp based on the notes within the midi file.
-This does not account for anything other than the time of the midi notes as it is. I decided against it because it would make the UI overcomplicated fast.
-The other parameters recorded by the midi parser are pitch, velocity, and channel.
+Credits: Fuse made by BasketOfNekos (github.com/BasketOfNekos)
 --]]--
-
---- @UI Animation Beginning:
--- The first frame of the input animation.
-
---- @UI Animation End:
--- The last frame of the input animation.
-
---- @UI Animation Offset:
--- An offset to the animation so you could time the animation to the beat. It moves frame 0 of the animation by the ammount put into the control and creates a "tail" behind frame 0.
-
---- @UI Merge Apply Mode:
--- Think photoshop blend modes. You have a variety of controls to determine how the recursively added animations are added onto the screen.
-
---- @UI Operator:
--- Another set of controls to determine how the recursively added animations are added onto the screen. Rather than how they are blended together, it's more about what order they are added on top of eachother.
-
---- @UI Midi File:
--- File location of the midi file.
--- NOTE, often times midi files exported directly from DAW's like ableton won't have the proper BPM settings and will end up defaulting to 120 BPM. You also won't get any BPM changes reflected in the midi file.
--- If you have this problem, you can fix this by uploading your midi file to www.beepbox.co, adding the proper BPM, and re-rendering it. This will work because beepbox actually puts the BPM in the midi file.
-
---- @UI Project Framerate:
--- The framerate of your timeline.
-
---- @UI Track Length (Frames):
--- The length of the fusion composition in the number of frames. You can easily copy paste this from the "Render End Time" thing under the preview.
-
---- @UI Add Midi:
--- Input a table of values to add a new beat(s). This is so you can make quick edits without going and modifying the midi file.
-
---- @UI Remove Midi:
--- Input a table of values to remove beat(s).
--- NOTE, The values are rounded when considering if they should be removed or not, this is to make it easier to actually remove an input. This can also have the side effect of deleting more than one note if they are too close to eachother. I would say this is very rare though.
--- NOTE, You can check the console for a list of all the times you can remove.
-
---- @UI Disable Rounding:
--- Midi notes in context with BPM don't always match exactly with the fps of your timeline, so you'll end up having situations where a note will play halfway between 2 frames. This can be problematic in timelines with low fps, and to resolve this, you can have fusion calculate what a frame would be during that half frame.
--- NOTE, This disables the "Manually Cache Frames" control because it defeats the purpose of that control.
--- This will tank performance, so I reccomend turning it on only before rendering.
-
---- @UI Manually Cache Frames:
--- This has been made so it will stop asking the node tree upstream when it finishes caching all the frames.
--- You may or may not have issues with fusion automatically unloading some of the frames needed for this node. This will (hopefully) resolve that.
-
---- @UI Flip Tail:
--- If you have overlapping content in your frames, it will let you control how they overlap before the offset (Frame of Beat) independantly.
-
---- @UI Use Loops:
--- If you want to make a value change outside of the specified animation, you can set the animation to loop in the spline editor and then check this to open up those controls for use. This locks "Manually Cache Frames" because one will effectively negate the other.
-
-
 
 --- Register the fuse so it will appear in fusion.
 FuRegisterClass("RecursiveMidiRepeat", CT_Tool, {
@@ -85,6 +31,8 @@ FuRegisterClass("RecursiveMidiRepeat", CT_Tool, {
 --- Define UI controls.
 function Create()
 
+--- @UI Animation Beginning:
+-- The first frame of the input animation.
     InFrameBegin = self:AddInput("Animation Beginning", "AnimationBegin", {
         LINKID_DataType = "Number",
         INPID_InputControl = "ScrewControl",
@@ -94,6 +42,8 @@ function Create()
         INP_Default = 0,
     })
 
+--- @UI Animation End:
+-- The last frame of the input animation.
     InFrameEnd = self:AddInput("Animation End", "AnimationEnd", {
         LINKID_DataType = "Number",
         INPID_InputControl = "ScrewControl",
@@ -103,6 +53,8 @@ function Create()
         INP_Default = 0,
     })
 
+--- @UI Animation Offset:
+-- An offset to the animation so you could time the animation to the beat. It moves frame 0 of the animation by the ammount put into the control and creates a "tail" behind frame 0.
     InAnimationOffset = self:AddInput("Animation Offset", "AnimationOffset", {
         LINKID_DataType = "Number",
         INPID_InputControl = "ScrewControl",
@@ -112,6 +64,8 @@ function Create()
         INP_Default = 0,
     })
 
+--- @UI Merge Apply Mode:
+-- Think photoshop blend modes. You have a variety of controls to determine how the recursively added animations are added onto the screen.
     InApply = self:AddInput("Merge Apply Mode", "ApplyMode", {
         LINKID_DataType = "Number",
         INPID_InputControl = "ComboControl",
@@ -165,6 +119,8 @@ function Create()
         { CCS_AddString = "Geometric",  },
         })
 
+--- @UI Operator:
+-- Another set of controls to determine how the recursively added animations are added onto the screen. Rather than how they are blended together, it's more about what order they are added on top of eachother.
     InOperation = self:AddInput("Operator", "Operator", {
         LINKID_DataType = "Number",
         INPID_InputControl = "ComboControl",
@@ -184,6 +140,10 @@ function Create()
         { CCS_AddString = "Under", },
         })
 
+--- @UI Midi File:
+-- File location of the midi file.
+-- NOTE, often times midi files exported directly from DAW's like ableton won't have the proper BPM settings and will end up defaulting to 120 BPM. You also won't get any BPM changes reflected in the midi file.
+-- If you have this problem, you can fix this by uploading your midi file to www.beepbox.co, adding the proper BPM, and re-rendering it. This will work because beepbox actually puts the BPM in the midi file.
     InMidi = self:AddInput("Midi File", "MidiFile", {
         LINKID_DataType = "Text",
         INPID_InputControl = "FileControl",
@@ -220,6 +180,9 @@ function Create()
         ]],
     })
 
+--- @UI Project Framerate:
+-- The framerate of your timeline.
+-- WARNING: Fusion effects work at 60fps, so setting this to anything else will stretch it.
     InFrameRate = self:AddInput("[Warning] Project Frame Rate", "FrameRate", {
         LINKID_DataType = "Number",
         INPID_InputControl = "ScrewControl",
@@ -229,6 +192,8 @@ function Create()
         INP_Default = 60,
     })
 
+--- @UI Track Length (Frames):
+-- The length of the fusion composition in the number of frames. You can easily copy paste this from the "Render End Time" thing under the preview.
     InTrackLength = self:AddInput("Track Length (Frames)", "TrackLength", {
         LINKID_DataType = "Number",
         INPID_InputControl = "ScrewControl",
@@ -238,6 +203,7 @@ function Create()
         INP_Default = 1,
     })
 
+-- WARNING: Not working properly, behavior may break in a future update
     InTrackStart = self:AddInput("[Warning] Track Start (Frames)", "TrackStart", {
         LINKID_DataType = "Number",
         INPID_InputControl = "ScrewControl",
@@ -435,6 +401,8 @@ function Create()
         ]],
     })
 
+--- @UI Add Midi:
+-- Input a table of values to add a new beat(s). This is so you can make quick edits without going and modifying the midi file.
     InAddMidi = self:AddInput("Add Midi", "AddMidi", {
         LINKID_DataType = "Text",
         INPID_InputControl = "TextEditControl",
@@ -444,6 +412,10 @@ function Create()
         TEC_DeferSetInputs = true,
     })
 
+--- @UI Remove Midi:
+-- Input a table of values to remove beat(s).
+-- NOTE, The values are rounded when considering if they should be removed or not, this is to make it easier to actually remove an input. This can also have the side effect of deleting more than one note if they are too close to eachother. I would say this is very rare though.
+-- NOTE, You can check the console for a list of all the times you can remove.
     InRemoveMidi = self:AddInput("Remove Midi", "RemoveMidi", {
         LINKID_DataType = "Text",
         INPID_InputControl = "TextEditControl",
@@ -457,6 +429,10 @@ function Create()
 
     self:BeginControlNest("Advanced", "Advanced", false);
 
+--- @UI Disable Rounding:
+-- Midi notes in context with BPM don't always match exactly with the fps of your timeline, so you'll end up having situations where a note will play halfway between 2 frames. This can be problematic in timelines with low fps, and to resolve this, you can have fusion calculate what a frame would be during that half frame.
+-- NOTE, This disables the "Manually Cache Frames" control because it defeats the purpose of that control.
+-- This will tank performance, so I reccomend turning it on only before rendering.
     InRemoveRounding = self:AddInput("Disable Rounding", "RemoveRounding", {
         LINKID_DataType = "Number",
         INPID_InputControl = "CheckboxControl",
@@ -464,6 +440,9 @@ function Create()
         INP_Default = 0,
     })
 
+--- @UI Manually Cache Frames:
+-- This has been made so it will stop asking the node tree upstream when it finishes caching all the frames.
+-- You may or may not have issues with fusion automatically unloading some of the frames needed for this node. This will (hopefully) resolve that.
     InFrameCashe = self:AddInput("Manually Cache Frames", "FrameCache", {
         LINKID_DataType = "Number",
         INPID_InputControl = "CheckboxControl",
@@ -471,6 +450,8 @@ function Create()
         INP_Disabled = false,
     })
 
+--- @UI Flip Tail:
+-- If you have overlapping content in your frames, it will let you control how they overlap before the offset (Frame of Beat) independantly.
     InFlipTail = self:AddInput("Flip Tail", "FlipTail", {
         LINKID_DataType = "Number",
         INPID_InputControl = "CheckboxControl",
@@ -478,6 +459,8 @@ function Create()
         INP_Default = 0,
     })
 
+--- @UI Use Loops:
+-- If you want to make a value change outside of the specified animation, you can set the animation to loop in the spline editor and then check this to open up those controls for use. This locks "Manually Cache Frames" because one will effectively negate the other.
     InUseLoops = self:AddInput("Use Loops", "UseLoops", {
         LINKID_DataType = "Number",
         INPID_InputControl = "CheckboxControl",
@@ -770,8 +753,6 @@ end
 --- This automatically runs when the a new fuse node is added to the comp, or when the .comp file is opened up.
 function OnAddToFlow()
     InTrackLength:SetAttrs({INP_Default = 1})
--- TODO set smart defaults. with INP_DelayDefault
--- INP_DelayDefault, if set to true, allows you to define a default value for an input in the OnAddToFlow() function. This is useful if a slider’s default value should depend on the composition’s frame format or time range as this information isn’t available in the Create() function yet.
 end
 
 --- This runs when a UI parameter with the "INP_DoNotifyChanged" setting set to true.
