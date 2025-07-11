@@ -42,12 +42,13 @@ I recommend that you have some midi editing tool, any DAW should work. Be aware 
 ##### Exports Midi with tempo changes: <br />
 Cakewalk <br />
 Reaper <br />
+FL Studio <br />
 ##### Exports Midi with tempo: <br />
 Beepbox
 
 ### Animation setup
 
-Connect the output of the node that makes up your animation into the midi_repeat node, once you have done that, you will now need to specify some values. These values are the beginning and end frames of your animation, an offset which controls where you want the midi note to play at, and the path to the midi file.
+Connect the output of the node that makes up your animation into the midi_repeat node, once you have done that, you will now need to specify some values. These values are the beginning and end frames of your animation, an offset which controls where in the animation you want the midi note to play at, and the path to the midi file.
 
 It is reccomended to make your input animation start on the same frame as the first note or it will not show up. 
 
@@ -55,10 +56,16 @@ It is reccomended to make your input animation start on the same frame as the fi
 
 These settings can be autofilled for conveinience, but exist to let you tamper if the need arrises.
 
+NOTE: <br /> 
+Currently framerates other than 60 don't seem to scale well. It might be some internal fusion behavior. <br />
+There is a bug in the TrackStart control behavior. You might have to fuss with it, and when it's patched it might break old projects. Keep it at 0 for now if you can. 
+
 ### Add and remove times
 
-You have the ability to add and remove midi notes from the list without having to go and change your actual midi file. This enables you to make small changes fast. <br />
-To do this, you need to put a lua table in the provided text box(s). For example {0,1,2} in the Add Midi text box will add a midi note at frame 0, 1, and 3.
+You have the ability to add and remove midi notes from the list without having to go and change your actual midi file. This enables you to make small changes fast. 
+
+To do this, you need to put a lua table in the provided text box(s). For example {0,1,2} in the Add Midi text box will add a midi note at frame 0, 1, and 3. <br />
+You can autofill the text boxes with a button that grabs the timing from markers in your project. There are filters in case you dont want every market to end up in the text box. 
 
 I've provided a list of midi note times in the consol (go to "Workspace > Console" at the top) to help with removing notes.
 
