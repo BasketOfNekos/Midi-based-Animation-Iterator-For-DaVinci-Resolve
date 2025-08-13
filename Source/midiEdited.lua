@@ -292,7 +292,7 @@ local metaEvents = {
   [0x2F] = makeForwarder("endOfTrack"),
   [0x51] = function(data)
     local rawTempo = read_format(false, "3", data)
-    print("setTempo", 6e7 / rawTempo)
+    -- print("setTempo", 6e7 / rawTempo)
     return "setTempo", rawTempo
   end,
   [0x54] = makeForwarder("smpteOffset"),
@@ -397,7 +397,7 @@ local function readTrack(stream, chunkLength, track, tempoChanges)
       length = length + metaOffset
 
       if eventType == "setTempo" then
-        print("setTempo", eventInfo, "tick", tick)
+        -- print("setTempo", eventInfo, "tick", tick)
         table.insert(tempoChanges, {tempo = eventInfo, tick = tick})
       end
 
@@ -524,3 +524,4 @@ function midi.process(stream, frame_rate, onlyHeader, onlyTrack)
 end
 
 return midi
+
