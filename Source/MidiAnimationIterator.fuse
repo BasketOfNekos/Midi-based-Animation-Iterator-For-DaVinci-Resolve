@@ -31,6 +31,8 @@ FuRegisterClass("RecursiveMidiRepeat", CT_Tool, {
 --- Define UI controls.
 function Create()
 
+    self:BeginControlNest("Standard Controls", "StandardControls", true);
+
 --- @UI Animation Beginning:
 -- The first frame of the input animation.
     InFrameBegin = self:AddInput("Animation Beginning", "AnimationBegin", {
@@ -152,7 +154,22 @@ function Create()
         INP_Default = 1,
     })
 
-    self:BeginControlNest("Project Settings", "ProjectSettings", false);
+    self:BeginControlNest("Extra Midi Files", "ExtraMidiFiles", false);
+
+    InMidiFiles = self:AddInput("Midi Files", "MidiFiles", {
+        LINKID_DataType = "Text",
+        INPID_InputControl = "TextEditControl",
+        INPS_DefaultText = "Example:\nC:/midi/file/1\nC:/midi/file/2\nC:/midi/file/3",
+        INP_DoNotifyChanged = true,
+        TEC_ReadOnly = false,
+        TEC_DeferSetInputs = true,
+    })
+
+    self:EndControlNest()
+
+    self:EndControlNest()
+
+    self:BeginControlNest("Project Settings", "ProjectSettings", true);
 
     InAutofill = self:AddInput("Autofill Project Settings", "Autofill", {
         LINKID_DataType = "Number",
@@ -216,6 +233,8 @@ function Create()
     self:EndControlNest()
 
     self:BeginControlNest("Add and Remove Times", "AddRemove", false);
+
+    self:BeginControlNest("Markers to Add Midi", "MarkersAddMidiControlNest", true);
 
     InTrackColorFilter = self:AddInput("Marker Track Filter", "TrackColorFilter", {
         LINKID_DataType = "Number",
@@ -352,6 +371,7 @@ function Create()
 
             local TrackFilter = tool.TrackColorFilter[TIME_UNDEFINED] + 1
             local ColorFilter = tool.MarkerColorFilter[TIME_UNDEFINED] + 1
+            local ParentAddMidi = tool.AddMidi[TIME_UNDEFINED]
             local ColorFilteredMarkers = {}
             local hash = {} -- For removing duplicates
             local AllMarkers = {}
@@ -385,6 +405,19 @@ function Create()
                 end
             end
 
+            if ParentAddMidi ~= "Example, add at frames 0, 1, 2:\n{0,1,2}" then
+                for tableValue in string.gmatch(ParentAddMidi, "([%w%d%.]+)") do
+                    for index, marker in ipairs(ColorFilteredMarkers) do
+                        if tableValue + 0 == marker then
+                            table.remove(ColorFilteredMarkers, index)
+                            break
+                        end
+                    end
+                end
+            else
+                tool.AddMidi = ""
+            end
+
             local output = {tool.AddMidi[TIME_UNDEFINED]}
             table.insert(output, "{")
             for _, frame in ipairs(ColorFilteredMarkers) do
@@ -394,19 +427,23 @@ function Create()
             if #output > 0 then
                 table.remove(output, #output)
             end
-            table.insert(output, "}")
+            if #output > 1 then
+                table.insert(output, "}")
+            end
 
             local outputString = table.concat(output)
             tool.AddMidi = outputString
         ]],
     })
 
+    self:EndControlNest()
+
 --- @UI Add Midi:
 -- Input a table of values to add a new beat(s). This is so you can make quick edits without going and modifying the midi file.
     InAddMidi = self:AddInput("Add Midi", "AddMidi", {
         LINKID_DataType = "Text",
         INPID_InputControl = "TextEditControl",
-        INPS_DefaultText = "Example, \n {0,1,2} \n adds a beat at frames 0, 1, and 2",
+        INPS_DefaultText = "Example, add at frames 0, 1, 2:\n{0,1,2}",
         INP_DoNotifyChanged = true,
         TEC_ReadOnly = false,
         TEC_DeferSetInputs = true,
@@ -419,7 +456,7 @@ function Create()
     InRemoveMidi = self:AddInput("Remove Midi", "RemoveMidi", {
         LINKID_DataType = "Text",
         INPID_InputControl = "TextEditControl",
-        INPS_DefaultText = "Example, \n {0,1,2} \n removes a beat at frames 0, 1, and 2",
+        INPS_DefaultText = "Example, remove at frames 0, 1, 2:\n{0,1,2}",
         INP_DoNotifyChanged = true,
         TEC_ReadOnly = false,
         TEC_DeferSetInputs = true,
@@ -489,56 +526,73 @@ end
 --- Also ptints the table of times to make it easier to use the "Add and Remove Times" controls.
 function MidiParser(req)
     -- UI parameters
-    local projectFrameRate = InFrameRate:GetValue(req).Value
+    local ProjectFrameRate = InFrameRate:GetValue(req).Value
     local TrackStart = InTrackStart:GetValue(req).Value
     local RemoveRounding = InRemoveRounding:GetValue(req).Value
     local AddMidi = InAddMidi:GetValue(req).Value
     local RemoveMidi = InRemoveMidi:GetValue(req).Value
-    local file = InMidi:GetValue(req).Value
+    local InputFile = InMidi:GetValue(req).Value
+    local ExtraFiles = InMidiFiles:GetValue(req).Value
 
-    -- Read Midi from file
+    -- Setup multi file support
+    local FileList = {}
+    if string.len(InputFile) > 0 then
+        table.insert(FileList, InputFile)
+    end
+    if ExtraFiles ~= "Example:\nC:/midi/file/1\nC:/midi/file/2\nC:/midi/file/3" then
+        for ExtraFile in string.gmatch(ExtraFiles, "[^\n]+") do
+            table.insert(FileList, ExtraFile)
+        end
+    end
+
+    function InsertInOrder(beatTimes, value)
+        for i=1, #beatTimes do
+            if beatTimes[i] >= value then
+                table.insert(beatTimes, i, value)
+                break
+            end
+        end
+        if #beatTimes == 0 or beatTimes[#beatTimes] <= value then
+            table.insert(beatTimes, #beatTimes + 1, value)
+        end
+        return beatTimes
+    end
+
+    -- Read Midi from file(s)
     local beatTimes = {}
-    if string.len(file) > 0 then
-        file = assert(io.open(InMidi:GetValue(req).Value, "rb"))
-        -- Function parameters
-        print("parse midi")
-        local midi = require("midiEdited")
+    for index, file in ipairs(FileList) do
+        if string.len(file) > 0 then
+            RawFile = assert(io.open(file, "rb"))
+            -- Function parameters
+            print("parse midi file: ", file)
+            local midi = require("midiEdited")
 
-        -- Open file and send it to the midi parser
-        if file ~= nil then
-            local tracks = midi.process(file, projectFrameRate)
-            file:close()
+            -- Open file and send it to the midi parser
+            local tracks = midi.process(RawFile, ProjectFrameRate)
+            RawFile:close()
 
             for i, track in ipairs(tracks) do
                 for j, event in ipairs(track) do
                     if RemoveRounding == 1 then
-                        beatTimes[#beatTimes+1] = event.frame
+                        beatTimes = InsertInOrder(beatTimes, event.frame)
                     else
-                        beatTimes[#beatTimes+1] = math.floor(event.frame)
+                        beatTimes = InsertInOrder(beatTimes, math.floor(event.frame))
                     end
                 end
             end
+            print("-----------------------")
         end
     end
 
     -- Converts the midi times in the add input and adds them to the beatTimes table
-    if AddMidi ~= "" and AddMidi ~= "Example, \n {0,1,2} \n adds a beat at frames 0, 1, and 2" then
+    if AddMidi ~= "" and AddMidi ~= "Example, add at frames 0, 1, 2:\n{0,1,2}" then
         for tableValue in string.gmatch(AddMidi, "([%w%d%.]+)") do
-            local tableValueNum = tableValue + 0 - TrackStart -- +0 to turn it into a number instead of a string
-            for i=1, #beatTimes do
-                if beatTimes[i] >= tableValueNum then
-                    table.insert(beatTimes, i, tableValueNum)
-                    break
-                end
-            end
-            if #beatTimes == 0 or beatTimes[#beatTimes] <= tableValueNum then
-                table.insert(beatTimes, #beatTimes + 1, tableValueNum)
-            end
+            beatTimes = InsertInOrder(beatTimes, tableValue + 0 - TrackStart) -- +0 to turn it into a number instead of a string
         end
     end
 
     -- Removes the midi times in the remove input
-    if RemoveMidi ~= "" and RemoveMidi ~= "Example, \n {0,1,2} \n removes a beat at frames 0, 1, and 2" then
+    if RemoveMidi ~= "" and RemoveMidi ~= "Example, remove at frames 0, 1, 2:\n{0,1,2}" then
         for tableValue in string.gmatch(RemoveMidi, "([%w%d%.]+)") do
             for i=1, #beatTimes do
                 if beatTimes[i] then
