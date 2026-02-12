@@ -66,6 +66,17 @@ function Create()
         INP_Default = 0,
     })
 
+--- @UI Animation Speed:
+-- Allows you to make the animation appear faster (Reduces or increases the max frame)
+    InAnimationSpeed = self:AddInput("Animation Speed", "AnimationSpeed", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ScrewControl",
+        INP_DoNotifyChanged = true,
+        INP_Integer = false,
+        INP_MinScale = 0.0,
+        INP_Default = 1.0,
+    })
+
 --- @UI Merge Apply Mode:
 -- Think photoshop blend modes. You have a variety of controls to determine how the recursively added animations are added onto the screen.
     InApply = self:AddInput("Merge Apply Mode", "ApplyMode", {
@@ -638,6 +649,7 @@ function MakeFrameTable(req, beatTimes)
     local AnimationOffset = InAnimationOffset:GetValue(req).Value
     local FlipTail = InFlipTail:GetValue(req).Value
     local UseLoops = InUseLoops:GetValue(req).Value
+    local AnimationSpeed = InAnimationSpeed:GetValue(req).Value
 
     -- Function parameters
     local TimeTable = {}
@@ -657,7 +669,7 @@ function MakeFrameTable(req, beatTimes)
             if beatTimes[animFrame] > max then break end
 
             if min < beatTimes[animFrame] then
-                frameToAdd = frame - beatTimes[animFrame] + AnimationOffset + AnimationBegin + 1 -- Plus 1 so it includes the last frame
+                frameToAdd = (frame - beatTimes[animFrame]) * AnimationSpeed + AnimationOffset + AnimationBegin + 1 -- Plus 1 so it includes the last frame
 
                 -- Adds frames in order so offset(AnimationOffset) will play correctly.
                 if frameToAdd >= AnimationOffset then
@@ -685,16 +697,16 @@ function MakeFrameTable(req, beatTimes)
         for animFrame = 1, #TimeTable do
             for dupes = 1, #TimeTable[animFrame] do
                 local LoopNum = math.floor(animFrame / AnimationLength)
-                local LoopFrame = LoopNum * AnimationLength
-                local Remainder = animFrame - LoopFrame
+                local LoopStartFrame = LoopNum * AnimationLength
+                local Remainder = animFrame - LoopStartFrame
                 if TimeTable[animFrame][dupes] > Remainder then
-                    LoopFrame =  LoopFrame - AnimationLength
+                    LoopStartFrame =  LoopStartFrame - AnimationLength
 
-                    while LoopFrame >= TrackLength do
-                        LoopFrame = LoopFrame - AnimationLength
+                    while LoopStartFrame >= TrackLength do
+                        LoopStartFrame = LoopStartFrame - AnimationLength
                     end
                 end
-                TimeTable[animFrame][dupes] = LoopFrame + TimeTable[animFrame][dupes] + TrackStart
+                TimeTable[animFrame][dupes] = LoopStartFrame + TimeTable[animFrame][dupes] + TrackStart
             end
         end
     end
