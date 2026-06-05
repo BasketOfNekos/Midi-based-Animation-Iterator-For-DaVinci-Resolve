@@ -426,7 +426,7 @@ end
   ---velocity, how hard a note is being pushed
   ---channel,
   ---tempo, if the tempo of the files changes, this will reflect that (may be done incorrectly)
-function midi.process(stream, frame_rate, onlyHeader, onlyTrack)
+function midi.process(stream, frame_rate, bpm_override, onlyHeader, onlyTrack)
   local allTracks = {}
   local format, tracks, devision -- Header information
   local track = 0
@@ -486,10 +486,17 @@ function midi.process(stream, frame_rate, onlyHeader, onlyTrack)
 
 
         local trackNotes, tempoChanges = readTrack(stream, chunkLength, track, tempoChanges) -- Read track
-
+--         dump(trackNotes)
+        
         if #trackNotes > 0 and devision ~= nil then
-          if #tempoChanges == 0 then
-            tempoChanges = {tempo = 500000, tick = 0} -- Default tempo (120 BPM)
+          if #tempoChanges == 0 then -- if the daw manually sets the incorrect default it can catch that.
+            tempoChanges[1] = {tempo = 500000, tick = 0} -- Default tempo (120 BPM)
+            print("Defaulting to 120 BPM")
+          end
+
+          if bpm_override ~= 0 then
+            tempoChanges[1] = {tempo = bpm_override/0.00024, tick = 0} -- 0.00024 is what we hope turns it into the correct tempo. If it's wrong than assuming 500000 is always 120 bpm is also wrong.
+            print("Overriding to ", bpm_override, " BPM")
           end
 
           -- Convert tick values to frames
