@@ -477,6 +477,17 @@ function Create()
 
     self:BeginControlNest("Advanced", "Advanced", false);
 
+--- @UI
+-- When the application cannot bake the BPM into the midi file this setting lets you force it in DaVinci Resolve.
+    InOverrideBPM = self:AddInput("BPM Override", "OverrideBPM", {
+        LINKID_DataType = "Number",
+        INPID_InputControl = "ScrewControl",
+        INP_DoNotifyChanged = true,
+        INP_Integer = false,
+        INP_MinScale = 0.0,
+        INP_Default = 0,
+    })
+
 --- @UI Disable Rounding:
 -- Midi notes in context with BPM don't always match exactly with the fps of your timeline, so you'll end up having situations where a note will play halfway between 2 frames. This can be problematic in timelines with low fps, and to resolve this, you can have fusion calculate what a frame would be during that half frame.
 -- NOTE, This disables the "Manually Cache Frames" control because it defeats the purpose of that control.
@@ -544,6 +555,7 @@ function MidiParser(req)
     local RemoveMidi = InRemoveMidi:GetValue(req).Value
     local InputFile = InMidi:GetValue(req).Value
     local ExtraFiles = InMidiFiles:GetValue(req).Value
+    local OverrideBPM = InOverrideBPM:GetValue(req).Value
 
     -- Setup multi file support
     local FileList = {}
@@ -579,7 +591,7 @@ function MidiParser(req)
             local midi = require("midiEdited")
 
             -- Open file and send it to the midi parser
-            local tracks = midi.process(RawFile, ProjectFrameRate)
+            local tracks = midi.process(RawFile, ProjectFrameRate, OverrideBPM)
             RawFile:close()
 
             for i, track in ipairs(tracks) do
