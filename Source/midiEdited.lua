@@ -495,7 +495,7 @@ function midi.process(stream, frame_rate, bpm_override, onlyHeader, onlyTrack)
           end
 
           if bpm_override ~= 0 then
-            tempoChanges[1] = {tempo = bpm_override/0.00024, tick = 0} -- 0.00024 is what we hope turns it into the correct tempo. If it's wrong than assuming 500000 is always 120 bpm is also wrong.
+            tempoChanges[1] = {tempo = (6.0*10^7)/bpm_override, tick = 0} -- 0.00024 is what we hope turns it into the correct tempo. If it's wrong than assuming 500000 is always 120 bpm is also wrong.
             print("Overriding to ", bpm_override, " BPM")
           end
 
