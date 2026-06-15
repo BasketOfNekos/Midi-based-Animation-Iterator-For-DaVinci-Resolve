@@ -42,10 +42,16 @@ I recommend that you have some midi editing tool, any DAW should work. Be aware 
 ##### Exports Midi with tempo changes: <br />
 Cakewalk <br />
 Reaper <br />
-FL Studio <br />
+FL Studio (Untested) <br />
+Logic Pro (Untested) <br />
+Cubase (Untested) <br />
 ##### Exports Midi with tempo: <br />
 bitwig <br />
-Beepbox
+Zrythm <br />
+##### Must use BPM override: <br />
+Ableton <br />
+Ardor <br />
+LMMS
 
 ### Animation setup
 
