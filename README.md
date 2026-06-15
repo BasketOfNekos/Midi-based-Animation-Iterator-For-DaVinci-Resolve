@@ -72,6 +72,9 @@ I've provided a list of midi note times in the consol (go to "Workspace > Consol
 
 ### Advanced
 
+BPM Override <br />
+When a DAW cannot bake the BPM into the midi file this setting lets you force it in DaVinci Resolve.
+
 Disable Rounding <br />
 Midi notes in context with BPM don't always match exactly with the fps of your timeline, so you'll end up having situations where a note will play halfway between 2 frames. This can be problematic in timelines with low fps (below 144 fps), and to resolve this, you can have fusion calculate what a frame would be during that half frame. However, this will tank performance, so I reccomend turning it on only before rendering.
 
