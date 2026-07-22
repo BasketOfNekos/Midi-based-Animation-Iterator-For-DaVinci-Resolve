@@ -192,7 +192,7 @@ function Create()
         local project = projectManager:GetCurrentProject()
 
         local timeline = project:GetCurrentTimeline()
-        local projectFrameRate = timeline:GetSetting("timelineFrameRate")
+        local projectFrameRate = math.floor(timeline:GetSetting("timelineFrameRate") + 0.5)
         local projectLength = timeline:GetEndFrame() - timeline:GetStartFrame()
 
         local startTimeCodeString = timeline:GetStartTimecode() -- The start of the video is normally not 0 in davinci. It's an hour in by default.
