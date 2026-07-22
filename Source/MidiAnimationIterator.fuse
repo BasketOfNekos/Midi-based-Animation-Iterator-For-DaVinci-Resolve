@@ -195,15 +195,25 @@ function Create()
         local projectFrameRate = timeline:GetSetting("timelineFrameRate")
         local projectLength = timeline:GetEndFrame() - timeline:GetStartFrame()
 
+        local startTimeCodeString = timeline:GetStartTimecode() -- The start of the video is normally not 0 in davinci. It's an hour in by default.
+        local h, m, s, f = string.match(startTimeCodeString, "^(%d+):(%d+):(%d+):(%d+)$")
+        local startTimeCodeSeconds = 0
+        startTimeCodeSeconds = startTimeCodeSeconds + (h * 3600)
+        startTimeCodeSeconds = startTimeCodeSeconds + (m * 60)
+        startTimeCodeSeconds = startTimeCodeSeconds + s
+        startTimeCodeSeconds = startTimeCodeSeconds + (f * (1 / projectFrameRate))
+
+        print("TimeCode, ", startTimeCodeSeconds)
+
         local item = timeline:GetCurrentVideoItem()
         local itemlength = item:GetDuration()
         local itemStart = item:GetStart()
         local itemEnd = item:GetEnd()
 
-        print("ProjectFrameRate ", projectFrameRate, " projectLength ", projectLength, " itemLength ", itemlength, " TrackStart ", itemStart - 3600 * projectFrameRate)
-        -- tool.FrameRate = projectFrameRate * 2
+        print("ProjectFrameRate ", projectFrameRate, " projectLength ", projectLength, " itemLength ", itemlength, " itemStart ", itemStart, " TrackStart ", itemStart - startTimeCodeSeconds * projectFrameRate)
+        tool.FrameRate = projectFrameRate
         tool.TrackLength = itemlength
-        tool.TrackStart = itemStart - 3600 * projectFrameRate -- Because DaVinci starts an hour in
+        tool.TrackStart = itemStart - startTimeCodeSeconds * projectFrameRate
         ]],
     })
 
